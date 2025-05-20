@@ -20,6 +20,9 @@ using ..PopMemberModule: PopMember
 using ..HallOfFameModule: HallOfFame, string_dominating_pareto_curve
 using ..ProgressBarsModule: WrappedProgressBar, manually_iterate!, barlen
 using ..AdaptiveParsimonyModule: RunningSearchStatistics
+include("../../PrImEL/src/EarlyStopping.jl")
+
+
 
 function logging_callback! end
 
@@ -345,12 +348,33 @@ function check_for_user_quit(reader::StdinReader)::Bool
 end
 
 function check_for_loss_threshold(halls_of_fame, options::AbstractOptions)::Bool
-    return _check_for_loss_threshold(halls_of_fame, options.early_stop_condition, options)
+    return _check_for_early_stop(halls_of_fame, options.early_stop_condition, options)
+    #return _check_for_loss_threshold(halls_of_fame, options.early_stop_condition, options)
 end
 
 function _check_for_loss_threshold(_, ::Nothing, ::AbstractOptions)
     return false
 end
+
+function temp_debug_flag(member, options::AbstractOptions)
+   return false
+end
+
+
+function _check_for_early_stop(halls_of_fame, f::F, options::AbstractOptions) where {F}
+   if !isnothing(f)
+   return all(halls_of_fame) do hof
+      any(hof.members[hof.exists]) do member
+         f(member, options)::Bool
+         #temp_debug_flag(member, options)
+      end
+   end
+   else
+      return false
+   end
+end
+
+
 function _check_for_loss_threshold(halls_of_fame, f::F, options::AbstractOptions) where {F}
     return all(halls_of_fame) do hof
         any(hof.members[hof.exists]) do member
